@@ -44,8 +44,8 @@ void setup()
   radio.begin(); // 初始化radio对象
   radio.openWritingPipe(address); // 设置地址
   radio.stopListening(); // 设置为发送端
-  radio.setPALevel(RF24_PA_LOW); // 设置功率放大器级别, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
-  radio.setDataRate(RF24_1MBPS); // 设置发送速率, RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
+  radio.setPALevel(RF24_PA_HIGH); // 设置功率放大器级别, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
+  radio.setDataRate(RF24_2MBPS); // 设置发送速率, RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
   radio.setRetries(0, 0);  // 设置重发间隔(ms)和最大重发次数
 
   // 初始化摇杆按钮
@@ -85,7 +85,7 @@ void GetValue()
          | ((uint32_t)(Joystick_Y & 0x3FF) << 10)
          | ((uint32_t)(Joystick_B & 0x1) << 20)
          | ((uint32_t)(Slider_Val & 0xFF) << 21);
-         // | ((uint32_t)(Potentiometer_Val & 0x7) << 29); // 暂时不使用电位器信号
+        //  | ((uint32_t)(Potentiometer_Val & 0x7) << 29); // 暂时不使用电位器信号
 }
 
 
@@ -100,7 +100,7 @@ void PrintInfo()
   Serial.print(Joystick_X);
   Serial.print(" | Joystick Y: ");
   Serial.print(Joystick_Y);
-  Serial.print(" | Joystick SW: ");
+  Serial.print(" | Joystick B: ");
   Serial.print(Joystick_B);
   // Serial.print(" | Potentiometer: ");
   // Serial.println(Potentiometer_Val);

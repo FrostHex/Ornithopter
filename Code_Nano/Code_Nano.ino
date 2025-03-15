@@ -8,18 +8,21 @@
 RF24 radio(7,8); // 创建RF24对象，CE对应7号引脚, CSN对应8号引脚
 const byte address[6] = "00006"; // 创建地址，用于识别发送端和接收端
 
-Servo servo_main; // 主翼电机
-#define PIN_SERVO_MAIN 1 // 主翼电机对应的引脚
-#define PIN_SERVO_ROLL 9 // 横滚舵机对应的引脚
-#define PIN_SERVO_PITCH 10 // 俯仰舵机对应的引脚
+Servo Motor; // 主翼电机
+Servo Servo_Pitch; // 俯仰舵机
+Servo Servo_Roll; // 滚转舵机
+#define PIN_MOTOR 3 // 主翼电机对应的引脚, 电调白线插D3
+#define PIN_SERVO_PITCH 5 // 俯仰舵机对应的引脚, 黄线插D5
+#define PIN_SERVO_ROLL 6 // 滚转舵机对应的引脚, 黄线插D6
 #define ANALOG_MAX 1023 // 模拟信号最大值
 #define ANALOG_MIN 0 // 模拟信号最小值
 #define THROTTLE_MAX 199 // 主翼电机转速信号最大值，对应占空比11.57%
 #define THROTTLE_MIN 8 // 主翼电机转速信号最小值，对应占空比3.15%
-int Slider_Val = 0; // 电机转速信号
-int Joystick_X = 0; // 摇杆X轴信号
-int Joystick_Y = 0; // 摇杆Y轴信号
+int Slider_Val = THROTTLE_MIN; // 电机转速信号
+int Joystick_X = 527; // 摇杆X轴信号
+int Joystick_Y = 488; // 摇杆Y轴信号
 int Joystick_B = 0; // 摇杆按钮信号, 0: 未按下, 1: 按下
+int Potentiometer_Val = 0; // 电位器信号
 uint32_t Packet = 0; // 接收数据包
 
 
@@ -32,31 +35,26 @@ void setup()
   // 初始化天线
   radio.begin();
   radio.openReadingPipe(1, address); // 设置地址，0-5指定打开的管道
-  radio.setPALevel(RF24_PA_LOW); // 设置功率放大器级别，RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
-  radio.setDataRate(RF24_1MBPS); // 设置发送速率，RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
+  radio.setPALevel(RF24_PA_MIN); // 设置功率放大器级别，RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
+  radio.setDataRate(RF24_2MBPS); // 设置发送速率，RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
   radio.startListening(); // 设置为接收端
   
   // 启动电调
   ActivateESC();
+
+  // 初始化舵机
+  Servo_Pitch.attach(PIN_SERVO_PITCH);
+  Servo_Roll.attach(PIN_SERVO_ROLL);
+  SetServoAngle(90, 90); // 归位
 }
 
 
 void loop() 
 {
-  // 读取天线数据
-  if (radio.available())
-  {
-    radio.read(&Packet, sizeof(Packet));
-    //TODO: 解析数据包
-  }
-
-  // 设置油门和舵机
-  SetThrottle(Slider_Val);
-  // Serial.print("Joystick X: ");
-  // Serial.println(Joystick_X);
-  // Serial.print("Joystick Y: ");
-  // Serial.println(Joystick_Y);
-
+  GetValue(); // 读取天线数据
+  PrintInfo(); // 串口打印调试信息
+  SetThrottle(Slider_Val); // 设置油门
+  SetServoAngle(map(Joystick_Y, ANALOG_MIN, ANALOG_MAX, 0, 180), map(Joystick_X, ANALOG_MIN, ANALOG_MAX, 0, 180)); // 设置舵机位置
   delay(10); // 延时ms
 }
 
@@ -77,14 +75,61 @@ void Wait(int s)
 
 
 /*
+ * @brief 读取天线数据
+ */
+void GetValue()
+{
+  if (radio.available())
+  {
+    radio.read(&Packet, sizeof(Packet));
+    Joystick_X = Packet & 0x3FF;
+    Joystick_Y = (Packet >> 10) & 0x3FF;
+    Joystick_B = (Packet >> 20) & 0x1;
+    Slider_Val = (Packet >> 21) & 0xFF;
+    // Potentiometer_Val = (Packet >> 29) & 0x7;
+  }
+}
+
+
+/*
  * @brief 设置油门
  * @param val 油门数值, THROTTLE_MIN ~ THROTTLE_MAX
  */
 void SetThrottle(int val)
 {
-  servo_main.write(constrain(val, THROTTLE_MIN, THROTTLE_MAX)); // 将油门比例转换为对应的计数值，ratio的范围0到255，对应的数值范围8到199
+  Motor.write(constrain(val, THROTTLE_MIN, THROTTLE_MAX)); // 将油门比例转换为对应的计数值，ratio的范围0到255，对应的数值范围8到199
   Serial.print("Setting value: ");
   Serial.println(constrain(val, THROTTLE_MIN, THROTTLE_MAX));
+}
+
+
+/*
+ * @brief 串口打印控制信息
+ */
+void PrintInfo()
+{
+  Serial.print("Slider: ");
+  Serial.print(Slider_Val);
+  Serial.print(" | Joystick X: ");
+  Serial.print(Joystick_X);
+  Serial.print(" | Joystick Y: ");
+  Serial.print(Joystick_Y);
+  Serial.print(" | Joystick B: ");
+  Serial.println(Joystick_B);
+  // Serial.print(" | Potentiometer: ");
+  // Serial.println(Potentiometer_Val);
+}
+
+
+/*
+ * @brief 设置舵机位置
+ * @param p 俯仰舵机位置, [0, 180]
+ * @param r 滚转舵机位置, [0, 180]
+ */
+void SetServoAngle(int p, int r)
+{
+  Servo_Pitch.write(p);
+  Servo_Roll.write(r);
 }
 
 
@@ -94,12 +139,12 @@ void SetThrottle(int val)
  */
 void ActivateESC()
 {
-  servo_main.attach(PIN_SERVO_MAIN);
+  Motor.attach(PIN_MOTOR);
   delay(1);
-  SetThrottle(100); // 设置油门最大
+  SetThrottle(THROTTLE_MAX); // 设置油门最大
   Serial.println("Please connect the battery to the ESC in 5 seconds!");
   Wait(5);
-  SetThrottle(0); // 设置油门最小
+  SetThrottle(THROTTLE_MIN); // 设置油门最小
   Wait(5);
   Serial.println("ESC is ready");
 }
