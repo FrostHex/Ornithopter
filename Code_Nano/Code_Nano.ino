@@ -26,7 +26,7 @@ void setup()
   radio.begin(); // 初始化radio对象
   radio.openReadingPipe(1, address); // 设置地址，0-5指定打开的管道
   radio.setPALevel(RF24_PA_LOW); // 设置功率放大器级别，RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
-  radio.setDataRate(RF24_2MBPS); // 设置发送速率，RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
+  radio.setDataRate(RF24_1MBPS); // 设置发送速率，RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
   radio.startListening(); // 设置为接收端
 
   // servo_main.attach(servo_main_pin);
