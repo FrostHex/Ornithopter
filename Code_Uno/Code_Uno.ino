@@ -6,7 +6,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-RF24 radio(7,8); // 创建RF24对象，CE对应7号引脚, CSN对应8号引脚
+RF24 Radio(7,8); // 创建RF24对象，CE对应7号引脚, CSN对应8号引脚
 const byte address[6] = "00006"; // 创建地址，用于识别发送端和接收端
 LiquidCrystal_I2C lcd(0x27, 16, 2); // 初始化 LCD，地址 0x27，16 列 2 行
 
@@ -41,12 +41,12 @@ void setup()
   Serial.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n==============================");
 
   // 初始化天线
-  radio.begin(); // 初始化radio对象
-  radio.openWritingPipe(address); // 设置地址
-  radio.stopListening(); // 设置为发送端
-  radio.setPALevel(RF24_PA_HIGH); // 设置功率放大器级别, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
-  radio.setDataRate(RF24_2MBPS); // 设置发送速率, RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
-  radio.setRetries(0, 0);  // 设置重发间隔(ms)和最大重发次数
+  Radio.begin(); // 初始化Radio对象
+  Radio.openWritingPipe(address); // 设置地址
+  Radio.stopListening(); // 设置为发送端
+  Radio.setPALevel(RF24_PA_HIGH); // 设置功率放大器级别, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
+  Radio.setDataRate(RF24_1MBPS); // 设置发送速率, RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
+  Radio.setRetries(0, 0);  // 设置重发间隔(ms)和最大重发次数
 
   // 初始化摇杆按钮
   pinMode(PIN_JOYSTICK_B, INPUT_PULLUP); // 启用内部上拉电阻
@@ -61,9 +61,9 @@ void setup()
 void loop() 
 {
   GetValue(); // 读取数据
-  radio.write(&Packet, sizeof(Packet)); // 发送数据包
-  Serial.print("Sending Packet... ");
-  PrintInfo(); // 串口打印调试信息
+  Radio.write(&Packet, sizeof(Packet)); // 发送数据包
+  // Serial.print("Sending Packet... ");
+  // PrintInfo(); // 串口打印调试信息
   SetScreen(); // 设置显示屏
   delay(10); // 延时ms
 }
@@ -84,8 +84,8 @@ void GetValue()
   Packet = ((uint32_t)(Joystick_X & 0x3FF))
          | ((uint32_t)(Joystick_Y & 0x3FF) << 10)
          | ((uint32_t)(Joystick_B & 0x1) << 20)
-         | ((uint32_t)(Slider_Val & 0xFF) << 21);
-        //  | ((uint32_t)(Potentiometer_Val & 0x7) << 29); // 暂时不使用电位器信号
+         | ((uint32_t)(Slider_Val & 0xFF) << 21)
+         | ((uint32_t)(Potentiometer_Val & 0x7) << 29); // 暂时不使用电位器信号
 }
 
 
@@ -102,8 +102,8 @@ void PrintInfo()
   Serial.print(Joystick_Y);
   Serial.print(" | Joystick B: ");
   Serial.print(Joystick_B);
-  // Serial.print(" | Potentiometer: ");
-  // Serial.println(Potentiometer_Val);
+  Serial.print(" | Potentiometer: ");
+  Serial.println(Potentiometer_Val);
 }
 
 

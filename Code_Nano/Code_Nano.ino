@@ -5,7 +5,7 @@
 #include <RF24.h>
 #include <Servo.h>
 
-RF24 radio(7,8); // 创建RF24对象，CE对应7号引脚, CSN对应8号引脚
+RF24 Radio(7,8); // 创建RF24对象，CE对应7号引脚, CSN对应8号引脚
 const byte address[6] = "00006"; // 创建地址，用于识别发送端和接收端
 
 Servo Motor; // 主翼电机
@@ -33,11 +33,11 @@ void setup()
   Serial.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n==============================");
 
   // 初始化天线
-  radio.begin();
-  radio.openReadingPipe(1, address); // 设置地址，0-5指定打开的管道
-  radio.setPALevel(RF24_PA_MIN); // 设置功率放大器级别，RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
-  radio.setDataRate(RF24_2MBPS); // 设置发送速率，RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
-  radio.startListening(); // 设置为接收端
+  Radio.begin();
+  Radio.openReadingPipe(1, address); // 设置地址，0-5指定打开的管道
+  Radio.setPALevel(RF24_PA_MIN); // 设置功率放大器级别，RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
+  Radio.setDataRate(RF24_1MBPS); // 设置发送速率，RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
+  Radio.startListening(); // 设置为接收端
   
   // 启动电调
   ActivateESC();
@@ -52,7 +52,11 @@ void setup()
 void loop() 
 {
   GetValue(); // 读取天线数据
-  PrintInfo(); // 串口打印调试信息
+  // PrintInfo(); // 串口打印调试信息
+  if (Joystick_B || !Potentiometer_Val) // 摇杆按钮按下或电位器为0
+  {
+    Slider_Val = THROTTLE_MIN; // 关闭电机
+  }
   SetThrottle(Slider_Val); // 设置油门
   SetServoAngle(map(Joystick_Y, ANALOG_MIN, ANALOG_MAX, 0, 180), map(Joystick_X, ANALOG_MIN, ANALOG_MAX, 0, 180)); // 设置舵机位置
   delay(10); // 延时ms
@@ -79,14 +83,14 @@ void Wait(int s)
  */
 void GetValue()
 {
-  if (radio.available())
+  if (Radio.available())
   {
-    radio.read(&Packet, sizeof(Packet));
+    Radio.read(&Packet, sizeof(Packet));
     Joystick_X = Packet & 0x3FF;
     Joystick_Y = (Packet >> 10) & 0x3FF;
     Joystick_B = (Packet >> 20) & 0x1;
     Slider_Val = (Packet >> 21) & 0xFF;
-    // Potentiometer_Val = (Packet >> 29) & 0x7;
+    Potentiometer_Val = (Packet >> 29) & 0x7;
   }
 }
 
@@ -98,8 +102,8 @@ void GetValue()
 void SetThrottle(int val)
 {
   Motor.write(constrain(val, THROTTLE_MIN, THROTTLE_MAX)); // 将油门比例转换为对应的计数值，ratio的范围0到255，对应的数值范围8到199
-  Serial.print("Setting value: ");
-  Serial.println(constrain(val, THROTTLE_MIN, THROTTLE_MAX));
+  // Serial.print("Setting value: ");
+  // Serial.println(constrain(val, THROTTLE_MIN, THROTTLE_MAX));
 }
 
 
@@ -116,8 +120,8 @@ void PrintInfo()
   Serial.print(Joystick_Y);
   Serial.print(" | Joystick B: ");
   Serial.println(Joystick_B);
-  // Serial.print(" | Potentiometer: ");
-  // Serial.println(Potentiometer_Val);
+  Serial.print(" | Potentiometer: ");
+  Serial.println(Potentiometer_Val);
 }
 
 
