@@ -12,16 +12,22 @@ Servo Motor; // 主翼电机
 Servo Servo_Pitch; // 俯仰舵机
 Servo Servo_Roll; // 滚转舵机
 #define PIN_MOTOR 3 // 主翼电机对应的引脚, 电调白线插D3
-#define PIN_SERVO_PITCH 5 // 俯仰舵机对应的引脚, 黄线插D5
-#define PIN_SERVO_ROLL 6 // 滚转舵机对应的引脚, 黄线插D6
+#define PIN_SERVO_PITCH 6 // 俯仰舵机对应的引脚, 黄线插D6
+#define PIN_SERVO_ROLL 5 // 滚转舵机对应的引脚, 黄线插D5+++++++++++++++++++++++++++++
 #define ANALOG_MAX 1023 // 模拟信号最大值
 #define ANALOG_MIN 0 // 模拟信号最小值
 #define THROTTLE_MAX 199 // 主翼电机转速信号最大值，对应占空比11.57%
 #define THROTTLE_MIN 8 // 主翼电机转速信号最小值，对应占空比3.15%
+#define JOYSTICK_X_MID 527 // 摇杆X轴中位值
+#define JOYSTICK_Y_MID 488 // 摇杆Y轴中位值
+#define PITCH_MAX 140 // 俯仰舵机最大角度
+#define ROLL_MAX 130 // 滚转舵机最大角度
 int Slider_Val = THROTTLE_MIN; // 电机转速信号
-int Joystick_X = 527; // 摇杆X轴信号
-int Joystick_Y = 488; // 摇杆Y轴信号
+int Joystick_X = JOYSTICK_X_MID; // 摇杆X轴信号
+int Joystick_Y = JOYSTICK_Y_MID; // 摇杆Y轴信号
 int Joystick_B = 0; // 摇杆按钮信号, 0: 未按下, 1: 按下
+int Angle_X = 90; // 俯仰舵机位置
+int Angle_Y = 90; // 滚转舵机位置
 int Potentiometer_Val = 0; // 电位器信号
 uint32_t Packet = 0; // 接收数据包
 
@@ -58,7 +64,24 @@ void loop()
     Slider_Val = THROTTLE_MIN; // 关闭电机
   }
   SetThrottle(Slider_Val); // 设置油门
-  SetServoAngle(map(Joystick_Y, ANALOG_MIN, ANALOG_MAX, 0, 180), map(Joystick_X, ANALOG_MIN, ANALOG_MAX, 0, 180)); // 设置舵机位置
+  // SetServoAngle(map(Joystick_Y, ANALOG_MIN, ANALOG_MAX, 0, 180), map(Joystick_X, ANALOG_MIN, ANALOG_MAX, 0, 180)); // 设置舵机位置
+  if (Joystick_Y >= JOYSTICK_Y_MID)
+  {
+    Angle_Y = map(Joystick_Y, JOYSTICK_Y_MID, ANALOG_MAX, 90, 180 - PITCH_MAX);
+  }
+  else
+  {
+    Angle_Y = map(Joystick_Y, ANALOG_MIN, JOYSTICK_Y_MID, PITCH_MAX, 90);
+  }
+  if (Joystick_X >= JOYSTICK_X_MID)
+  {
+    Angle_X = map(Joystick_X, JOYSTICK_X_MID, ANALOG_MAX, 90, ROLL_MAX);
+  }
+  else
+  {
+    Angle_X = map(Joystick_X, ANALOG_MIN, JOYSTICK_X_MID, 180 - ROLL_MAX, 90);
+  }
+  SetServoAngle(Angle_Y, Angle_X); // 设置舵机位置
   delay(10); // 延时ms
 }
 
@@ -134,6 +157,10 @@ void SetServoAngle(int p, int r)
 {
   Servo_Pitch.write(p);
   Servo_Roll.write(r);
+  // Serial.print("Pitch: ");
+  // Serial.print(p);
+  // Serial.print(" | Roll: ");
+  // Serial.println(r);
 }
 
 
@@ -147,8 +174,10 @@ void ActivateESC()
   delay(1);
   SetThrottle(THROTTLE_MAX); // 设置油门最大
   Serial.println("Please connect the battery to the ESC in 5 seconds!");
-  Wait(5);
+  // Wait(5);
+  delay(500);
   SetThrottle(THROTTLE_MIN); // 设置油门最小
-  Wait(5);
+  // Wait(5);
+  delay(500);
   Serial.println("ESC is ready");
 }

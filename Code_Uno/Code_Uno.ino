@@ -19,10 +19,14 @@ LiquidCrystal_I2C lcd(0x27, 16, 2); // 初始化 LCD，地址 0x27，16 列 2 �
 #define ANALOG_MIN 0 // 模拟信号最小值
 #define THROTTLE_MAX 199 // 油门级别总数
 #define THROTTLE_MIN 8 // 油门最小值
+#define JOYSTICK_X_MID 527 // 摇杆X轴中位值
+#define JOYSTICK_Y_MID 488 // 摇杆Y轴中位值
 int Slider_Val = 0; // 滑杆信号
 int Joystick_X = 0; // 摇杆X轴信号
 int Joystick_Y = 0; // 摇杆Y轴信号
 int Joystick_B = 0; // 摇杆按钮信号, 0: 未按下, 1: 按下
+int Angle_X = 90; // 俯仰舵机位置
+int Angle_Y = 90; // 滚转舵机位置
 int Potentiometer_Val = 0; // 电位器信号
 uint32_t Packet = 0; // 发送数据包
 
@@ -64,6 +68,24 @@ void loop()
   Radio.write(&Packet, sizeof(Packet)); // 发送数据包
   // Serial.print("Sending Packet... ");
   // PrintInfo(); // 串口打印调试信息
+
+  if (Joystick_Y >= JOYSTICK_Y_MID)
+  {
+    Angle_Y = map(Joystick_Y, JOYSTICK_Y_MID, ANALOG_MAX, 90, 180);
+  }
+  else
+  {
+    Angle_Y = map(Joystick_Y, ANALOG_MIN, JOYSTICK_Y_MID, 0, 90);
+  }
+  if (Joystick_X >= JOYSTICK_X_MID)
+  {
+    Angle_X = map(Joystick_X, JOYSTICK_X_MID, ANALOG_MAX, 90, 180);
+  }
+  else
+  {
+    Angle_X = map(Joystick_X, ANALOG_MIN, JOYSTICK_X_MID, 0, 90);
+  }
+
   SetScreen(); // 设置显示屏
   delay(10); // 延时ms
 }
@@ -74,10 +96,25 @@ void loop()
  */
 void GetValue()
 {
-  Slider_Val = constrain(analogRead(PIN_SLIDER), ANALOG_MIN, ANALOG_MAX);
-  Slider_Val = map(Slider_Val, ANALOG_MIN, ANALOG_MAX, THROTTLE_MIN, THROTTLE_MAX);
   Potentiometer_Val = constrain(analogRead(PIN_POTENTIOMETER), ANALOG_MIN, ANALOG_MAX);
   Potentiometer_Val = map(Potentiometer_Val, ANALOG_MIN, ANALOG_MAX, 0, 7);
+  Slider_Val = constrain(analogRead(PIN_SLIDER), ANALOG_MIN, ANALOG_MAX);
+  if (Potentiometer_Val < 3)
+  {
+    Slider_Val = map(Slider_Val, ANALOG_MIN, ANALOG_MAX, THROTTLE_MIN, THROTTLE_MAX - 131); // [0, 60]
+  }
+  else if (Potentiometer_Val < 5)
+  {
+    Slider_Val = map(Slider_Val, ANALOG_MIN, ANALOG_MAX, THROTTLE_MIN, THROTTLE_MAX - 111); // [0, 80]
+  }
+  else if (Potentiometer_Val < 7)
+  {
+    Slider_Val = map(Slider_Val, ANALOG_MIN, ANALOG_MAX, THROTTLE_MIN, THROTTLE_MAX - 91); // [0, 100]
+  }
+  else
+  {
+    Slider_Val = map(Slider_Val, ANALOG_MIN, ANALOG_MAX, THROTTLE_MIN, THROTTLE_MAX - 71); // [0, 120]
+  }
   Joystick_X = constrain(analogRead(PIN_JOYSTICK_X), ANALOG_MIN, ANALOG_MAX);
   Joystick_Y = constrain(analogRead(PIN_JOYSTICK_Y), ANALOG_MIN, ANALOG_MAX);
   Joystick_B = !digitalRead(PIN_JOYSTICK_B);
@@ -121,11 +158,11 @@ void SetScreen()
   lcd.print(Joystick_B);
   lcd.setCursor(10, 0);
   lcd.print("x");
-  lcd.print(Joystick_X - 527);
+  lcd.print((Angle_X >= 90) ? "+" + String(Angle_X - 90) : String(Angle_X - 90));
   lcd.setCursor(6, 1);
   lcd.print("p");
-  lcd.print(Potentiometer_Val + 1);
+  lcd.print(Potentiometer_Val);
   lcd.setCursor(10, 1);
   lcd.print("y");
-  lcd.print(488 - Joystick_Y);
+  lcd.print((Angle_Y >= 90) ? "+" + String(Angle_Y - 90) : String(Angle_Y - 90));
 }
